@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/1966954919/MPAndroidChart.iml" filepath="$PROJECT_DIR$/.idea/modules/1966954919/MPAndroidChart.iml" group="MPAndroidChart" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/2039331415/MPChartExample.iml" filepath="$PROJECT_DIR$/.idea/modules/2039331415/MPChartExample.iml" group="MPAndroidChart/MPChartExample" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/MPChartLib.iml" filepath="$PROJECT_DIR$/.idea/modules/MPChartLib.iml" group="MPAndroidChart/MPChartLib" />
+    </modules>
+  </component>
+</project>
