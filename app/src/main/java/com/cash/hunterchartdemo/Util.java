@@ -1,8 +1,8 @@
 package com.cash.hunterchartdemo;
 
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 
 public class Util {
 
@@ -25,7 +25,7 @@ public class Util {
      */
     public static String getDateToString(long milSecond) {
         Date date = new Date(milSecond);
-        SimpleDateFormat format = new SimpleDateFormat("HH:mm:ss");
+        SimpleDateFormat format = new SimpleDateFormat("HH:mm:ss", Locale.ENGLISH);
         return format.format(date);
     }
 

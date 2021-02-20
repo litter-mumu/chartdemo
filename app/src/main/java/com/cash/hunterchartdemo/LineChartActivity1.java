@@ -53,53 +53,14 @@ public class LineChartActivity1 extends DemoBase {
     private List<ChartBean> chartBeans = new ArrayList<>();
     private List<Entry> values = new ArrayList<>();
 
+    private int socketTime = 0;
+
     private Handler mHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(@NonNull Message msg) {
             super.handleMessage(msg);
             initChart();
             startConnect();
-        }
-    };
-
-    WsStatusListener wsBaseStatusListener = new WsStatusListener() {
-        @Override
-        public void onOpen(Response response) {
-            super.onOpen(response);
-            //协议初始化  心跳等
-            Log.i("消息s", "" + response.toString());
-        }
-
-        @Override
-        public void onMessage(String text) {
-            super.onMessage(text);
-            //消息处理
-            ChartBean bean = new Gson().fromJson(text, ChartBean.class);
-            Log.i("消息s", bean.toString());
-            //放入总数据列，使数据列完整
-            chartBeans.add(bean);
-        }
-
-        @Override
-        public void onMessage(ByteString bytes) {
-            super.onMessage(bytes);
-            //消息处理
-            Log.i("消息ss", "" + bytes.toString());
-        }
-
-        @Override
-        public void onClosing(int code, String reason) {
-            super.onClosing(code, reason);
-        }
-
-        @Override
-        public void onClosed(int code, String reason) {
-            super.onClosed(code, reason);
-        }
-
-        @Override
-        public void onFailure(Throwable t, Response response) {
-            super.onFailure(t, response);
         }
     };
 
@@ -147,6 +108,48 @@ public class LineChartActivity1 extends DemoBase {
             }
         }).start();
     }
+
+    WsStatusListener wsBaseStatusListener = new WsStatusListener() {
+        @Override
+        public void onOpen(Response response) {
+            super.onOpen(response);
+            //协议初始化  心跳等
+            Log.i("消息s", "" + response.toString());
+        }
+
+        @Override
+        public void onMessage(String text) {
+            super.onMessage(text);
+            //消息处理
+            ChartBean bean = new Gson().fromJson(text, ChartBean.class);
+            Log.i("消息s", bean.toString());
+            //放入总数据列，使数据列完整
+            chartBeans.add(bean);
+//            refreshChartLastData();
+        }
+
+        @Override
+        public void onMessage(ByteString bytes) {
+            super.onMessage(bytes);
+            //消息处理
+            Log.i("消息ss", "" + bytes.toString());
+        }
+
+        @Override
+        public void onClosing(int code, String reason) {
+            super.onClosing(code, reason);
+        }
+
+        @Override
+        public void onClosed(int code, String reason) {
+            super.onClosed(code, reason);
+        }
+
+        @Override
+        public void onFailure(Throwable t, Response response) {
+            super.onFailure(t, response);
+        }
+    };
 
     private void initSocket() {
         wsBaseManager = new WsManager.Builder(getBaseContext())
@@ -198,13 +201,14 @@ public class LineChartActivity1 extends DemoBase {
 
             xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
 
-            xAxis.setLabelCount(30);
+//            xAxis.setLabelCount(30);
 
             xAxis.setValueFormatter(new IAxisValueFormatter() {
                 @Override
                 public String getFormattedValue(float value, AxisBase axis) {
-                    Log.d("LineChartActivity1", Util.getDateToString((int) value * 1000l));
-                    return Util.getDateToString((int) value * 1000l);
+                    long timestamp = ((long) (value * 2) + currentTime) * 1000;
+//                    Log.e("LineChartActivity1", "long = " + value);
+                    return Util.getDateToString(timestamp);
                 }
             });
         }
@@ -255,10 +259,25 @@ public class LineChartActivity1 extends DemoBase {
         l.setForm(LegendForm.LINE);
     }
 
+    //时间区间 默认1分钟 两秒请求一次，所以默认30
+    private int timeInterval = 30;
+
+    private void refreshChartLastData() {
+        socketTime++;
+
+        ChartBean bean = chartBeans.get(chartBeans.size() - 1);
+        Entry entry = new Entry(timeInterval + socketTime, Util.getAverage(bean.getAsk(), bean.getBid()));
+        values.add(entry);
+    }
+
+    private long currentTime;
+
     private void setData() {
-        for (int i = 0; i < 30; i++) {
-            ChartBean bean = chartBeans.get(chartBeans.size() - i - 1);
-            Entry entry = new Entry(bean.getEpoch(), Util.getAverage(bean.getAsk(), bean.getBid()));
+        currentTime = chartBeans.get(chartBeans.size() - timeInterval).getEpoch();
+        for (int i = 0; i < timeInterval; i++) {
+            ChartBean bean = chartBeans.get(chartBeans.size() - (timeInterval - i));
+            Log.d("LineChartActivity1", i + "  " + bean.toString());
+            Entry entry = new Entry(i, Util.getAverage(bean.getAsk(), bean.getBid()));
 //            Log.d("LineChartActivity1", "x = " + entry.getX() + "  y = " + Util.getAverage(bean.getAsk(), bean.getBid())
 //                    + "   " + Util.getDateToString((bean.getEpoch() * 1000)));
             values.add(entry);
