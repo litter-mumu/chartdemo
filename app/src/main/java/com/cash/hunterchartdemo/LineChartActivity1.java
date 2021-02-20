@@ -125,7 +125,7 @@ public class LineChartActivity1 extends DemoBase {
             Log.i("消息s", bean.toString());
             //放入总数据列，使数据列完整
             chartBeans.add(bean);
-//            refreshChartLastData();
+            refreshChartLastData();
         }
 
         @Override
@@ -193,6 +193,8 @@ public class LineChartActivity1 extends DemoBase {
 
             // force pinch zoom along both axis
             chart.setPinchZoom(true);
+
+            chart.setVisibleXRangeMaximum(30);
         }
 
         XAxis xAxis;
@@ -200,8 +202,6 @@ public class LineChartActivity1 extends DemoBase {
             xAxis = chart.getXAxis();
 
             xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-
-//            xAxis.setLabelCount(30);
 
             xAxis.setValueFormatter(new IAxisValueFormatter() {
                 @Override
@@ -250,7 +250,7 @@ public class LineChartActivity1 extends DemoBase {
 
 
         // draw points over time
-        chart.animateX(1500);
+        chart.animateX(500);
 
         // get the legend (only possible after setting data)
         Legend l = chart.getLegend();
@@ -268,10 +268,18 @@ public class LineChartActivity1 extends DemoBase {
         ChartBean bean = chartBeans.get(chartBeans.size() - 1);
         Entry entry = new Entry(timeInterval + socketTime, Util.getAverage(bean.getAsk(), bean.getBid()));
         values.add(entry);
+
+        set1 = (LineDataSet) chart.getData().getDataSetByIndex(0);
+        set1.setValues(values);
+        set1.notifyDataSetChanged();
+        chart.getData().notifyDataChanged();
+        chart.notifyDataSetChanged();
+        chart.invalidate();
     }
 
     private long currentTime;
 
+    private LineDataSet set1;
     private void setData() {
         currentTime = chartBeans.get(chartBeans.size() - timeInterval).getEpoch();
         for (int i = 0; i < timeInterval; i++) {
@@ -282,8 +290,6 @@ public class LineChartActivity1 extends DemoBase {
 //                    + "   " + Util.getDateToString((bean.getEpoch() * 1000)));
             values.add(entry);
         }
-
-        LineDataSet set1;
 
         if (chart.getData() != null && chart.getData().getDataSetCount() > 0) {
             set1 = (LineDataSet) chart.getData().getDataSetByIndex(0);
@@ -336,7 +342,7 @@ public class LineChartActivity1 extends DemoBase {
                 set1.setFillColor(Color.BLACK);
             }
 
-            ArrayList<ILineDataSet> dataSets = new ArrayList<>();
+            List<ILineDataSet> dataSets = new ArrayList<>();
             dataSets.add(set1); // add the data sets
 
             // create a data object with the data sets
