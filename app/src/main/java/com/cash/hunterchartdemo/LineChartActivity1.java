@@ -82,6 +82,8 @@ public class LineChartActivity1 extends DemoBase {
                 try {
                     Log.w(TAG, "" + Thread.currentThread());
                     OkHttpClient client = new OkHttpClient();
+                    client.newBuilder().connectTimeout(5000,TimeUnit.SECONDS);
+//                    client.retryOnConnectionFailure();
                     Request request = new Request.Builder()
                             .url("https://supertrade.vip/cache/history?subjectId=R_100")
                             .get()

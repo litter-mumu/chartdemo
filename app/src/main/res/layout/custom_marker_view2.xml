@@ -28,6 +28,7 @@
         android:gravity="center"
         android:text="1811.23"
         android:textSize="12sp"
+        android:background="@drawable/bg_high_value_text"
         app:layout_constraintBottom_toBottomOf="@id/fl_circle"
         app:layout_constraintLeft_toRightOf="@+id/view_line"
         app:layout_constraintTop_toTopOf="@id/fl_circle" />
