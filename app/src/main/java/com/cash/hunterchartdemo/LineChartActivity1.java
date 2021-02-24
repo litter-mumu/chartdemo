@@ -9,6 +9,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
+import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
@@ -82,10 +83,10 @@ public class LineChartActivity1 extends DemoBase {
                 try {
                     Log.w(TAG, "" + Thread.currentThread());
                     OkHttpClient client = new OkHttpClient();
-                    client.newBuilder().connectTimeout(5000,TimeUnit.SECONDS);
+                    client.newBuilder().connectTimeout(5000, TimeUnit.SECONDS);
 //                    client.retryOnConnectionFailure();
                     Request request = new Request.Builder()
-                            .url("https://supertrade.vip/cache/history?subjectId=R_100")
+                            .url("http://47.98.111.79:88/cache/history?subjectId=R_100")
                             .get()
                             .build();
                     Call call = client.newCall(request);
@@ -95,6 +96,7 @@ public class LineChartActivity1 extends DemoBase {
                         Gson gson = new Gson();
                         ChartResponseInfo chartResponseInfo = gson.fromJson(responseData, ChartResponseInfo.class);
                         chartBeans = chartResponseInfo.getData();
+                        Log.e("LineChartActivity1", "chartBeans.size = " + chartBeans.size());
 
                         mHandler.sendEmptyMessage(0);
                         Log.w(TAG + " success", responseData);
@@ -158,7 +160,7 @@ public class LineChartActivity1 extends DemoBase {
                         .retryOnConnectionFailure(true)
                         .build())
                 .needReconnect(true)
-                .wsUrl("wss://supertrade.vip/cachews/?subjectId=R_100")
+                .wsUrl("ws://47.98.111.79:88/cachews/?subjectId=R_100")
                 .build();
         wsBaseManager.setWsStatusListener(wsBaseStatusListener);
     }
@@ -226,8 +228,8 @@ public class LineChartActivity1 extends DemoBase {
         l.setForm(LegendForm.LINE);
     }
 
-    //时间区间 默认1分钟 两秒请求一次，所以默认30
-    private int timeInterval = 30;
+    //时间区间 默认3分钟 两秒请求一次，所以默认90
+    private int timeInterval = 90;
 
     /**
      * TODO 这里会有一个bug，如果网速好的情况下，当前时间加上请求次数是没问题的，但是网速不好的情况下，时间会越来越小
@@ -254,10 +256,11 @@ public class LineChartActivity1 extends DemoBase {
             data.notifyDataChanged();
 
 
-            chart.getXAxis().setAxisMaximum(timeInterval + socketTime + 5);
+            // 设置X轴最大值，为了指示器不重叠，需要根据显示的分钟值来动态设置
+            chart.getXAxis().setAxisMaximum(timeInterval + socketTime + /*(int) (timeInterval / 6) + */16);
 
             chart.notifyDataSetChanged();
-            chart.setVisibleXRangeMaximum(30);
+            chart.setVisibleXRangeMaximum(timeInterval);
             //TODO 加动画的话，锚点不是同步进行的，再找其他办法看看
 //            chart.moveViewToAnimated(entry.getX(),entry.getY(),set.getAxisDependency(),500);
 
@@ -310,10 +313,10 @@ public class LineChartActivity1 extends DemoBase {
             set1.setDrawValues(false);
 
             //自定义高亮时的十字指示
-            set1.setDrawVerticalHighlightIndicator(false);
+            // draw selection line as dashed
+            set1.enableDashedHighlightLine(10f, 5f, 0f);
+            set1.setHighLightColor(Color.parseColor("#717A96"));
             set1.setDrawHorizontalHighlightIndicator(false);
-            set1.setHighLightColor(Color.WHITE);
-            set1.setHighlightLineWidth(1f);
 
             // set the filled area
             set1.setDrawFilled(true);
@@ -336,6 +339,30 @@ public class LineChartActivity1 extends DemoBase {
             // set data
             chart.setData(data);
         }
+    }
+
+    //450
+    public void click_15m(View view) {
+    }
+
+    //300
+    public void click_10m(View view) {
+    }
+
+    //150
+    public void click_5m(View view) {
+        values.clear();
+        chart.getLineData().clearValues();
+        timeInterval = 150;
+        setInitData();
+    }
+
+    //90
+    public void click_3m(View view) {
+        values.clear();
+        chart.getLineData().clearValues();
+        timeInterval = 90;
+        setInitData();
     }
 
 }
