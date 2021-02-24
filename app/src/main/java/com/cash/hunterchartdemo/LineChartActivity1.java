@@ -52,14 +52,13 @@ public class LineChartActivity1 extends DemoBase {
     private List<ChartBean> chartBeans = new ArrayList<>();
     private List<Entry> values = new ArrayList<>();
 
-    private int socketTime = 0;
+//    private int socketTime = 0;
 
     private Handler mHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(@NonNull Message msg) {
             super.handleMessage(msg);
             initChart();
-            startConnect();
         }
     };
 
@@ -102,7 +101,7 @@ public class LineChartActivity1 extends DemoBase {
                         Log.w(TAG + " success", responseData);
                     } else {
                         Log.w(TAG + " fail", "" + Thread.currentThread());
-                        mHandler.sendEmptyMessage(1);
+//                        mHandler.sendEmptyMessage(1);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -126,8 +125,10 @@ public class LineChartActivity1 extends DemoBase {
             ChartBean bean = new Gson().fromJson(text, ChartBean.class);
             Log.i("消息s", bean.toString());
             //放入总数据列，使数据列完整
-            chartBeans.add(bean);
-            refreshChartLastData();
+            if (!chartBeans.isEmpty()) {
+                chartBeans.add(bean);
+                refreshChartLastData();
+            }
         }
 
         @Override
@@ -163,13 +164,7 @@ public class LineChartActivity1 extends DemoBase {
                 .wsUrl("ws://47.98.111.79:88/cachews/?subjectId=R_100")
                 .build();
         wsBaseManager.setWsStatusListener(wsBaseStatusListener);
-    }
-
-    private void startConnect() {
-        if (!wsBaseManager.isWsConnected()) {
-            Log.e("LineChartActivity1", "startConnect");
-            wsBaseManager.startConnect();
-        }
+        wsBaseManager.startConnect();
     }
 
     private void initChart() {
@@ -189,7 +184,6 @@ public class LineChartActivity1 extends DemoBase {
 
             // force pinch zoom along both axis
             chart.setPinchZoom(true);
-            chart.setVisibleXRangeMaximum(30);
         }
 
         XAxis xAxis;
@@ -201,7 +195,8 @@ public class LineChartActivity1 extends DemoBase {
                 @Override
                 public String getFormattedValue(float value, AxisBase axis) {
                     //两秒一次，因此 *2
-                    long timestamp = ((long) (value * 2) + currentTime) * 1000;
+//                    long timestamp = ((long) (value * 2) + currentTime) * 1000;
+                    long timestamp = ((long) value + currentTime) * 1000;
 //                    Log.e("LineChartActivity1", "long = " + value);
                     return Util.getDateToString(timestamp);
                 }
@@ -235,10 +230,11 @@ public class LineChartActivity1 extends DemoBase {
      * TODO 这里会有一个bug，如果网速好的情况下，当前时间加上请求次数是没问题的，但是网速不好的情况下，时间会越来越小
      */
     private void refreshChartLastData() {
-        socketTime++;
+//        socketTime++;
 
         ChartBean bean = chartBeans.get(chartBeans.size() - 1);
-        Entry entry = new Entry(timeInterval + socketTime, Util.getAverage(bean.getAsk(), bean.getBid()));
+        Entry entry = new Entry(bean.getEpoch() - currentTime, Util.getAverage(bean.getAsk(), bean.getBid()));
+//        Entry entry = new Entry(timeInterval + socketTime, Util.getAverage(bean.getAsk(), bean.getBid()));
         values.add(entry);
 
         Highlight highlight = new Highlight(values.get(values.size() - 1).getX(), 0, -1);
@@ -255,12 +251,12 @@ public class LineChartActivity1 extends DemoBase {
             data.addEntry(entry, 0);
             data.notifyDataChanged();
 
-
             // 设置X轴最大值，为了指示器不重叠，需要根据显示的分钟值来动态设置
-            chart.getXAxis().setAxisMaximum(timeInterval + socketTime + /*(int) (timeInterval / 6) + */16);
+//            chart.getXAxis().setAxisMaximum(timeInterval + socketTime + /*(int) (timeInterval / 6) + */16);
+            chart.getXAxis().setAxisMaximum(bean.getEpoch() - currentTime + (int) (timeInterval / 3) + 2);
 
             chart.notifyDataSetChanged();
-            chart.setVisibleXRangeMaximum(timeInterval);
+            chart.setVisibleXRangeMaximum(timeInterval * 2); //TODO 理论上来说这里不需要 *2 啊，难道说这里传的值不是指个数
             //TODO 加动画的话，锚点不是同步进行的，再找其他办法看看
 //            chart.moveViewToAnimated(entry.getX(),entry.getY(),set.getAxisDependency(),500);
 
@@ -280,7 +276,7 @@ public class LineChartActivity1 extends DemoBase {
         for (int i = 0; i < timeInterval; i++) {
             ChartBean bean = chartBeans.get(chartBeans.size() - (timeInterval - i));
             Log.d("LineChartActivity1", i + "  " + bean.toString());
-            Entry entry = new Entry(i, Util.getAverage(bean.getAsk(), bean.getBid()));
+            Entry entry = new Entry(bean.getEpoch() - currentTime, Util.getAverage(bean.getAsk(), bean.getBid()));
             values.add(entry);
         }
 
@@ -343,26 +339,36 @@ public class LineChartActivity1 extends DemoBase {
 
     //450
     public void click_15m(View view) {
+        clearDataAndReset(450);
     }
 
     //300
     public void click_10m(View view) {
+        clearDataAndReset(300);
     }
 
     //150
     public void click_5m(View view) {
-        values.clear();
-        chart.getLineData().clearValues();
-        timeInterval = 150;
-        setInitData();
+        clearDataAndReset(150);
     }
 
     //90
     public void click_3m(View view) {
+        clearDataAndReset(90);
+    }
+
+    private void clearDataAndReset(int i) {
         values.clear();
         chart.getLineData().clearValues();
-        timeInterval = 90;
+        timeInterval = i;
         setInitData();
     }
 
+    // 页面都销毁了，还留着长链接干啥
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        wsBaseManager.stopConnect();
+        wsBaseManager = null;
+    }
 }
