@@ -20,6 +20,7 @@ import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.AxisBase;
 import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.components.Legend.LegendForm;
+import com.github.mikephil.charting.components.LimitLine;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.Entry;
@@ -33,7 +34,9 @@ import com.google.gson.Gson;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
@@ -51,6 +54,8 @@ public class LineChartActivity1 extends DemoBase {
 
     private List<ChartBean> chartBeans = new ArrayList<>();
     private List<Entry> values = new ArrayList<>();
+
+    private List<LimitLine> limitLines = new ArrayList<>();
 
 //    private int socketTime = 0;
 
@@ -189,6 +194,7 @@ public class LineChartActivity1 extends DemoBase {
         XAxis xAxis;
         {   // // X-Axis Style // //
             xAxis = chart.getXAxis();
+            xAxis.setLabelCount(5, true);
             xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
             xAxis.setTextColor(Color.parseColor("#656E87"));
             xAxis.setValueFormatter(new IAxisValueFormatter() {
@@ -226,19 +232,39 @@ public class LineChartActivity1 extends DemoBase {
     //时间区间 默认3分钟 两秒请求一次，所以默认90
     private int timeInterval = 90;
 
-    /**
-     * TODO 这里会有一个bug，如果网速好的情况下，当前时间加上请求次数是没问题的，但是网速不好的情况下，时间会越来越小
-     */
+    private List<LimitLine> outTimeLine = new ArrayList<>();
+
     private void refreshChartLastData() {
 //        socketTime++;
+
 
         ChartBean bean = chartBeans.get(chartBeans.size() - 1);
         Entry entry = new Entry(bean.getEpoch() - currentTime, Util.getAverage(bean.getAsk(), bean.getBid()));
 //        Entry entry = new Entry(timeInterval + socketTime, Util.getAverage(bean.getAsk(), bean.getBid()));
         values.add(entry);
 
+        if (chart == null) {
+            return;
+        }
+
         Highlight highlight = new Highlight(values.get(values.size() - 1).getX(), 0, -1);
         chart.highlightValue(highlight, false);
+
+
+        //判断限制线是否已经过期
+        for (int i = 0; i < limitLines.size(); i++) {
+            LimitLine line = limitLines.get(i);
+            if (System.currentTimeMillis() - line.getTimestamp() > 62000) {
+                outTimeLine.add(line);
+            } else {
+                break;
+            }
+        }
+        for (LimitLine line : outTimeLine) {
+            limitLines.remove(line);
+            chart.getAxisRight().removeLimitLine(line);
+        }
+        outTimeLine.clear();
 
         LineData data = chart.getData();
         if (data != null) {
@@ -279,6 +305,7 @@ public class LineChartActivity1 extends DemoBase {
             Entry entry = new Entry(bean.getEpoch() - currentTime, Util.getAverage(bean.getAsk(), bean.getBid()));
             values.add(entry);
         }
+        Log.e("LineChartActivity1", "values.size():" + values.size());
 
         if (chart.getData() != null && chart.getData().getDataSetCount() > 0) {
             set1 = (LineDataSet) chart.getData().getDataSetByIndex(0);
@@ -350,11 +377,21 @@ public class LineChartActivity1 extends DemoBase {
     //150
     public void click_5m(View view) {
         clearDataAndReset(150);
+
+//        Map map = new HashMap();
+//        map.put("amount", String.valueOf(chartBeans.get(chartBeans.size() - 1).getAsk()));
+//        map.put("accountType", "0");
+//        addLimitLine(map);
     }
 
     //90
     public void click_3m(View view) {
         clearDataAndReset(90);
+//        startActivity(new Intent(this, MainMpChartActivity.class));
+//        Map map = new HashMap();
+//        map.put("amount", String.valueOf(chartBeans.get(chartBeans.size() - 1).getAsk()));
+//        map.put("accountType", "1");
+//        addLimitLine(map);
     }
 
     private void clearDataAndReset(int i) {
@@ -363,6 +400,27 @@ public class LineChartActivity1 extends DemoBase {
         timeInterval = i;
         setInitData();
     }
+
+    private void addLimitLine(Map<String, String> map) {
+        if (map == null) {
+            return;
+        }
+        int accountType = Integer.parseInt(map.get("accountType"));
+        int lineColor = accountType == 0 ? Color.parseColor("#D23104") : Color.parseColor("#62A763");
+        String amount = map.get("amount");
+        LimitLine ll1 = new LimitLine(Float.parseFloat(amount == null ? "0" : amount), amount);
+        ll1.setLineWidth(1f);
+        ll1.setLineColor(lineColor);
+        ll1.setLabelPosition(LimitLine.LimitLabelPosition.RIGHT_TOP);
+        ll1.setTextColor(lineColor);
+        ll1.setTextSize(12f);
+        ll1.setTimestamp(System.currentTimeMillis());
+
+        limitLines.add(ll1);
+
+        chart.getAxisRight().addLimitLine(ll1);
+    }
+
 
     // 页面都销毁了，还留着长链接干啥
     @Override
